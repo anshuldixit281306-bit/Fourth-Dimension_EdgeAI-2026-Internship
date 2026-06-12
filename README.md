@@ -1,91 +1,113 @@
-# Fourth-Dimension_EdgeAI-2026-Internship
+# Campus Handbook Chatbot (Offline RAG) — GUI Edition
 
-# Campus Handbook Chatbot (Offline RAG)
+A **100% offline**, pure-Python desktop chatbot that answers questions from
+a college/school handbook PDF and shows **page citations** — built with
+**Tkinter** (Python's built-in GUI library, no other languages or
+frameworks needed).
 
-## Project Overview
+## What's Included
 
-The Campus Handbook Chatbot is an offline Retrieval-Augmented Generation (RAG) system that allows students to ask questions about their college handbook and receive accurate answers with page citations. Instead of relying on memorized information, the chatbot retrieves relevant content directly from the handbook PDF and uses a Small Language Model (SLM) to generate responses based on the retrieved text.
+- `handbook_bot_gui.py` — the full GUI application
+- `handbook.pdf` — a sample "Greenwood High School" student handbook
+  (8 pages: attendance, exams, dress code, library, anti-bullying,
+  transport, contacts) for testing
+- `requirements.txt`
+- `.gitignore`
 
-This project is built entirely offline and does not require any external APIs or internet connectivity after setup.
+## How It Works
 
-## Features
+1. **PDF extraction** — `PyMuPDF (fitz)` reads the handbook page by page.
+2. **Chunking** — each page is split into ~300-word chunks, tagged with
+   its page number.
+3. **Embeddings** — `sentence-transformers` (`all-MiniLM-L6-v2`) converts
+   each chunk into a vector.
+4. **Vector search** — `FAISS` finds the top 3 chunks most relevant to your
+   question.
+5. **Answer generation** — the retrieved chunks + page numbers are sent to
+   a **local** `llama3.2:1b` model via **Ollama**, which writes the final
+   answer with citations like "(Page 2)".
+6. If the retrieved content doesn't answer the question, the bot replies:
+   *"I could not find this information in the handbook."*
 
-- PDF-based question answering
-- Retrieval-Augmented Generation (RAG)
-- Page citation support
-- Offline execution
-- Fast semantic search using FAISS
-- Lightweight embedding model for efficient retrieval
-- Uses Llama 3.2 1B through Ollama
+Everything runs on your machine — no internet connection or API keys
+required after the one-time model downloads.
 
-## Technology Stack
+## Setup
 
-- Python
-- PyMuPDF
-- Sentence Transformers (all-MiniLM-L6-v2)
-- FAISS
-- Ollama
-- Llama 3.2 1B
+1. **Install Python packages:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   (On Linux, Tkinter may need a separate system package:
+   `sudo apt install python3-tk`)
 
-## Workflow
+2. **Install Ollama** and pull the model:
+   ```bash
+   ollama pull llama3.2:1b
+   ```
+   Make sure `ollama serve` is running (Ollama usually starts this
+   automatically after installation).
 
-1. Load the college handbook PDF.
-2. Extract text from each page.
-3. Split the text into smaller chunks.
-4. Generate embeddings using MiniLM.
-5. Store embeddings in a FAISS vector index.
-6. Accept a student's question.
-7. Retrieve the most relevant handbook sections.
-8. Generate an answer using Llama 3.2 1B.
-9. Display the answer with page citations.
+3. **(One-time, needs internet)** The first run downloads the
+   `all-MiniLM-L6-v2` embedding model (~80MB) from Hugging Face and caches
+   it locally. After that, everything works fully offline.
 
-## Project Architecture
+## Running the App
 
-```text
-College Handbook PDF
-        ↓
-   Text Chunks
-        ↓
- MiniLM Embeddings
-        ↓
-    FAISS Index
-        ↓
-  User Question
-        ↓
- Relevant Chunks
-        ↓
-  Llama 3.2 1B
-        ↓
-Answer + Citation
+```bash
+python handbook_bot_gui.py
 ```
 
-## Example Questions
+- The app launches with the bundled `handbook.pdf` (Greenwood High School
+  sample) by default.
+- Use **"Choose PDF..."** to load your own college/school handbook —
+  this automatically rebuilds the index for the new file.
+- Use **"Rebuild Index"** if you've edited the current PDF and want to
+  refresh the search index.
+- Type a question in the box at the bottom and press **Enter** or click
+  **Ask**.
 
-- What is the exam fee?
-- How do I apply for hostel accommodation?
-- What is the attendance requirement?
-- What are the library rules?
-- How can I apply for a scholarship?
+### Try These Sample Questions (with the bundled handbook)
 
-## Use Cases
+- "What is the attendance policy?" → answers from **Page 2**
+- "Can I use my phone during an exam?" → answers from **Page 3**
+- "What is the dress code?" → answers from **Page 4**
+- "How many books can I borrow from the library?" → answers from **Page 5**
+- "What happens if there's bullying?" → answers from **Page 6**
+- "What is the capital of France?" → *"I could not find this information
+  in the handbook."* (correctly rejects out-of-scope questions)
 
-- Academic regulations
-- Examination information
-- Hostel procedures
-- Scholarship details
-- Attendance policies
-- Library guidelines
-- Student support services
+## Files Generated Automatically
 
-## Future Enhancements
+- `handbook.index` — saved FAISS vector index
+- `chunks.pkl` — saved text chunks + page numbers
 
-- Web-based interface
-- Multiple PDF support
-- Chat history
-- Saved FAISS index
-- Jetson Orin deployment
-- Voice-enabled chatbot
+These are cached so the app starts instantly on future runs. Delete them
+(or click **"Rebuild Index"**) to regenerate after changing the PDF.
 
-## Objective
+## Security Notes
 
-The objective of this project is to build a fully offline document question-answering system using Retrieval-Augmented Generation (RAG) and Llama 3.2 1B. The chatbot improves information accessibility for students by providing accurate answers directly from the college handbook with page references.
+- **No external APIs** — all computation (embeddings, search, and LLM
+  generation) happens locally via Ollama.
+- **No arbitrary file access** — PDFs are only loaded via the OS file
+  picker (`Choose PDF...`), and the app verifies the file has a `.pdf`
+  extension before processing.
+- **Pickle usage** — `chunks.pkl` only ever stores plain text/number data
+  (chunk text + page numbers) and is only ever written by this app. Avoid
+  replacing it with a `chunks.pkl` file from an untrusted source, since
+  `pickle.load()` can execute arbitrary code if the file is crafted
+  maliciously.
+- **Prompt design** — the LLM is explicitly instructed to answer only from
+  retrieved handbook content and to say when information isn't found,
+  reducing hallucinated or off-topic answers.
+- **Local network only** — Ollama runs on `localhost:11434` by default;
+  don't expose this port to the internet.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `ModuleNotFoundError: No module named 'tkinter'` | Install `python3-tk` (Linux) |
+| "Could not reach the local Ollama model" | Run `ollama serve` and `ollama pull llama3.2:1b` |
+| Embedding model download fails | Check internet connection (only needed the first time) |
+| "No extractable text found in this PDF" | The PDF is likely scanned images; use an OCR tool first |
