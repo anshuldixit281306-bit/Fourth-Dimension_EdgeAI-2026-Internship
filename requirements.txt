@@ -1,0 +1,6 @@
+ollama
+pymupdf
+sentence-transformers
+faiss-cpu
+numpy
+pickle-mixin
