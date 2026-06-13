@@ -25,10 +25,8 @@ import faiss                    # for fast vector similarity search
 import ollama                   # for talking to the local Ollama LLM
 from sentence_transformers import SentenceTransformer
 
-
-# ---------------------------------------------------------------------------
 # CONFIGURATION
-# ---------------------------------------------------------------------------
+
 PDF_PATH = "handbook.pdf"          # the college handbook PDF
 INDEX_PATH = "handbook.index"      # saved FAISS index
 CHUNKS_PATH = "chunks.pkl"         # saved text chunks + page numbers
@@ -40,9 +38,9 @@ CHUNK_WORD_SIZE = 300               # approx words per chunk
 TOP_K = 3                            # number of chunks to retrieve per query
 
 
-# ---------------------------------------------------------------------------
+
 # STEP 1: EXTRACT TEXT FROM PDF (PAGE BY PAGE)
-# ---------------------------------------------------------------------------
+
 def extract_text_by_page(pdf_path):
     """
     Open the PDF and extract text from each page separately.
@@ -71,9 +69,9 @@ def extract_text_by_page(pdf_path):
     return pages_text
 
 
-# ---------------------------------------------------------------------------
+
 # STEP 2: SPLIT TEXT INTO ~300 WORD CHUNKS (KEEPING PAGE NUMBERS)
-# ---------------------------------------------------------------------------
+
 def chunk_text(pages_text, chunk_size=CHUNK_WORD_SIZE):
     """
     Split each page's text into chunks of approximately `chunk_size` words.
@@ -101,9 +99,9 @@ def chunk_text(pages_text, chunk_size=CHUNK_WORD_SIZE):
     return chunks
 
 
-# ---------------------------------------------------------------------------
+
 # STEP 3: GENERATE EMBEDDINGS FOR EACH CHUNK
-# ---------------------------------------------------------------------------
+
 def create_embeddings(chunks, embedding_model):
     """
     Convert each text chunk into a numeric vector (embedding) using
@@ -127,9 +125,9 @@ def create_embeddings(chunks, embedding_model):
     return embeddings
 
 
-# ---------------------------------------------------------------------------
+
 # STEP 4: BUILD A FAISS INDEX FROM THE EMBEDDINGS
-# ---------------------------------------------------------------------------
+
 def build_faiss_index(embeddings):
     """
     Build a simple FAISS index using L2 (Euclidean) distance for
@@ -149,9 +147,9 @@ def build_faiss_index(embeddings):
     return index
 
 
-# ---------------------------------------------------------------------------
+
 # STEP 5: SAVE / LOAD INDEX AND CHUNKS (SO WE DON'T REBUILD EVERY TIME)
-# ---------------------------------------------------------------------------
+
 def save_index_and_chunks(index, chunks):
     """Save the FAISS index to disk and the chunks list using pickle."""
     faiss.write_index(index, INDEX_PATH)
@@ -180,9 +178,9 @@ def index_and_chunks_exist():
     return os.path.exists(INDEX_PATH) and os.path.exists(CHUNKS_PATH)
 
 
-# ---------------------------------------------------------------------------
+
 # STEP 6: RETRIEVE TOP-K MOST RELEVANT CHUNKS FOR A QUESTION
-# ---------------------------------------------------------------------------
+
 def retrieve_relevant_chunks(question, embedding_model, index, chunks, top_k=TOP_K):
     """
     Convert the user's question into an embedding, search the FAISS index
@@ -205,10 +203,8 @@ def retrieve_relevant_chunks(question, embedding_model, index, chunks, top_k=TOP
     retrieved = [chunks[i] for i in indices[0] if i != -1]
     return retrieved
 
-
-# ---------------------------------------------------------------------------
 # STEP 7: BUILD THE PROMPT FOR THE LLM (INCLUDES CHUNKS + PAGE NUMBERS)
-# ---------------------------------------------------------------------------
+
 def build_prompt(question, retrieved_chunks):
     """
     Combine the retrieved chunks (with page numbers) and the user's question
@@ -243,10 +239,8 @@ Answer:"""
 
     return prompt
 
-
-# ---------------------------------------------------------------------------
 # STEP 8: SEND PROMPT TO OLLAMA (llama3.2:1b) AND GET THE ANSWER
-# ---------------------------------------------------------------------------
+
 def ask_llm(prompt):
     """
     Send the prompt to the local Ollama model (llama3.2:1b) and return
@@ -261,9 +255,8 @@ def ask_llm(prompt):
     return response["message"]["content"].strip()
 
 
-# ---------------------------------------------------------------------------
 # STEP 9: MAIN SETUP - LOAD/BUILD EMBEDDING MODEL, INDEX, AND CHUNKS
-# ---------------------------------------------------------------------------
+
 def setup():
     """
     Prepare everything needed for the chatbot:
@@ -292,9 +285,8 @@ def setup():
     return embedding_model, index, chunks
 
 
-# ---------------------------------------------------------------------------
 # STEP 10: CHAT LOOP - CONTINUOUSLY ASK QUESTIONS UNTIL "quit"
-# ---------------------------------------------------------------------------
+
 def chat_loop(embedding_model, index, chunks):
     """
     Run an interactive terminal loop:
@@ -345,9 +337,8 @@ def chat_loop(embedding_model, index, chunks):
         print(f"(Retrieved from page(s): {pages_str})\n")
 
 
-# ---------------------------------------------------------------------------
 # ENTRY POINT
-# ---------------------------------------------------------------------------
+
 def main():
     try:
         embedding_model, index, chunks = setup()
