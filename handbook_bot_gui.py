@@ -1,25 +1,5 @@
 """
 Campus Handbook Chatbot (Offline RAG) - GUI Edition
-=====================================================
-
-A fully offline Retrieval-Augmented Generation (RAG) chatbot with a
-desktop GUI built using Tkinter (Python's built-in GUI toolkit - no
-extra GUI libraries required).
-
-Tech stack (all local, no external APIs):
-- Tkinter                -> graphical user interface (built into Python)
-- PyMuPDF (fitz)         -> extract text from the handbook PDF
-- Sentence Transformers  -> create embeddings (all-MiniLM-L6-v2)
-- FAISS                  -> vector similarity search
-- NumPy                  -> store/manage embedding arrays
-- Ollama (llama3.2:1b)   -> local LLM for answer generation
-
-SECURITY NOTES (see README for full details):
-- Chunk data is stored as JSON-safe pickle (plain dicts of str/int only)
-  to avoid arbitrary-code-execution risks from untrusted pickle files.
-- Only PDF files selected via the OS file dialog can be loaded.
-- All processing happens on the local machine; nothing is sent over
-  the network.
 """
 
 import os
@@ -31,14 +11,13 @@ import queue
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 
-import fitz                     # PyMuPDF - for reading PDF files
-import numpy as np              # for storing/handling embeddings
-import faiss                    # for fast vector similarity search
+import fitz                     
+import numpy as np              
+import faiss                   
 
 
-# ---------------------------------------------------------------------------
 # CONFIGURATION
-# ---------------------------------------------------------------------------
+
 DEFAULT_PDF_PATH = "handbook.pdf"
 INDEX_PATH = "handbook.index"
 CHUNKS_PATH = "chunks.pkl"
@@ -50,9 +29,7 @@ CHUNK_WORD_SIZE = 300
 TOP_K = 3
 
 
-# ---------------------------------------------------------------------------
 # CORE RAG LOGIC (same approach as the CLI version, reused by the GUI)
-# ---------------------------------------------------------------------------
 
 def extract_text_by_page(pdf_path):
     """Open a PDF and return a list of (page_number, page_text) tuples."""
@@ -163,9 +140,8 @@ def ask_llm(prompt):
     return response["message"]["content"].strip()
 
 
-# ---------------------------------------------------------------------------
 # GUI APPLICATION
-# ---------------------------------------------------------------------------
+
 class HandbookChatbotApp:
     def __init__(self, root):
         self.root = root
@@ -191,9 +167,9 @@ class HandbookChatbotApp:
         self._set_status("Loading embedding model...")
         threading.Thread(target=self._setup_worker, daemon=True).start()
 
-    # ------------------------------------------------------------------
+   
     # UI LAYOUT
-    # ------------------------------------------------------------------
+   
     def _build_ui(self):
         # --- Top bar: PDF selection ---
         top_frame = ttk.Frame(self.root, padding=8)
@@ -245,9 +221,9 @@ class HandbookChatbotApp:
                                relief="sunken", anchor="w", padding=4)
         status_bar.pack(fill="x", side="bottom")
 
-    # ------------------------------------------------------------------
+    
     # HELPERS FOR UPDATING THE UI
-    # ------------------------------------------------------------------
+    
     def _append_chat(self, text, tag=None):
         self.chat_display.configure(state="normal")
         if tag:
@@ -284,9 +260,9 @@ class HandbookChatbotApp:
             pass
         self.root.after(100, self._poll_queue)
 
-    # ------------------------------------------------------------------
+    
     # PDF SELECTION / INDEX BUILDING (background work)
-    # ------------------------------------------------------------------
+   
     def _choose_pdf(self):
         path = filedialog.askopenfilename(
             title="Select Handbook PDF",
@@ -376,9 +352,9 @@ class HandbookChatbotApp:
         self.msg_queue.put(("status", "Saving index to disk..."))
         save_index_and_chunks(self.index, self.chunks)
 
-    # ------------------------------------------------------------------
+    
     # ASKING QUESTIONS
-    # ------------------------------------------------------------------
+    
     def _on_ask(self):
         if not self.ready:
             return
@@ -423,13 +399,12 @@ class HandbookChatbotApp:
             self.msg_queue.put(("ready", None))
 
 
-# ---------------------------------------------------------------------------
 # ENTRY POINT
-# ---------------------------------------------------------------------------
+
 def main():
     root = tk.Tk()
     try:
-        # Use a more modern theme if available
+        
         style = ttk.Style()
         if "clam" in style.theme_names():
             style.theme_use("clam")
